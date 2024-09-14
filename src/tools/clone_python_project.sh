@@ -1,13 +1,23 @@
 #!/bin/bash
 
 setup_git() {
-    read -p "Enter GitHub username: " github_username
+    read -p "Enter GitHub email: " github_email
     read -sp "Enter GitHub auth token: " github_token
+
+    git config --global user.email "$github_email"
+    git config --global user.password "$github_token"
+
+    # Test the token
+    if curl -s -H "Authorization: token $github_token" https://api.github.com/user | grep -q "login"; then
+        :
+    else
+        echo "GitHub authentication failed. Please check your token and try again."
+        exit 1
+    fi
+
     echo
     read -p "Enter GitHub repository URL: " repo_url
 
-    git config --global user.name "$github_username"
-    git config --global user.password "$github_token"
     git clone "$repo_url"
     
     # Get the repository name from the URL
@@ -16,7 +26,7 @@ setup_git() {
     # Move the current script into the cloned repository
     mv "$0" "$repo_name/"
     
-    echo "Moved setup script into $repo_name directory"
+    echo "Success"
 }
 
 install_rye() {
