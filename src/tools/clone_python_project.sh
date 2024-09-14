@@ -33,13 +33,12 @@ setup_git() {
 }
 
 install_rye() {
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        curl -sSf https://rye-up.com/get | bash
-    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        curl -sSf https://rye-up.com/get | bash
-    else
-        echo "Unsupported OS for Rye installation"
-        exit 1
+    curl -sSf https://rye.astral.sh/get | bash
+    if ! echo 'source "$HOME/.rye/env"' >> ~/.profile 2>/dev/null; then
+        echo "Failed to update ~/.profile."
+    fi
+    if ! echo 'source "$HOME/.rye/env"' >> ~/.bashrc 2>/dev/null; then
+        echo "Failed to update ~/.bashrc."
     fi
     source "$HOME/.rye/env"
     rye sync
