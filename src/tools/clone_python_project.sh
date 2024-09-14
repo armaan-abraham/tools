@@ -3,19 +3,22 @@
 setup_git() {
     read -p "Enter GitHub email: " github_email
     read -sp "Enter GitHub auth token: " github_token
+    echo
 
     git config --global user.email "$github_email"
-    git config --global user.password "$github_token"
+    
+    # Store the token securely
+    echo "https://oauth2:${github_token}@github.com" > ~/.git-credentials
+    git config --global credential.helper store
 
     # Test the token
     if curl -s -H "Authorization: token $github_token" https://api.github.com/user | grep -q "login"; then
-        :
+        echo "GitHub authentication successful."
     else
         echo "GitHub authentication failed. Please check your token and try again."
         exit 1
     fi
 
-    echo
     read -p "Enter GitHub repository URL: " repo_url
 
     git clone "$repo_url"
