@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# the greatest thing to happen to humanity since pitbull
+
 setup_git() {
     read -p "Enter GitHub email: " github_email
     read -sp "Enter GitHub auth token: " github_token
