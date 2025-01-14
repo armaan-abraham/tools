@@ -1,5 +1,8 @@
 # Set custom Rye installation path
-export PERSIST_DIR="/home/ubuntu/v2025-01-06"
+export PERSIST_DIR="$(pwd)"
+
+# Create .local directory if it doesn't exist
+mkdir -p "$PERSIST_DIR/.local"
 
 setup_rye() {
     RYE_HOME="$PERSIST_DIR/.local/rye"
@@ -26,10 +29,11 @@ setup_rye() {
 
 
 setup_git() {
-    # Check if git is already configured by looking for a marker file
-    if [ ! -f "$PERSIST_DIR/.git-configured" ]; then
+    # Only prompt for credentials if git config or credentials file doesn't exist
+    if [ ! -f "$PERSIST_DIR/.gitconfig" ] || [ ! -f "$PERSIST_DIR/.git-credentials" ]; then
         # Get GitHub credentials
         read -p "Enter GitHub email: " github_email
+        read -p "Enter GitHub name: " github_name
         read -sp "Enter GitHub auth token: " github_token
         echo  # New line after password input
 
@@ -37,28 +41,25 @@ setup_git() {
         cat > "$PERSIST_DIR/.gitconfig" << EOL
 [user]
     email = $github_email
+    name = $github_name
 [credential]
     helper = store
 EOL
 
         # Store credentials in persistent directory
         echo "https://oauth2:${github_token}@github.com" > "$PERSIST_DIR/.git-credentials"
-        
-        # Test the token
-        if curl -s -H "Authorization: token $github_token" https://api.github.com/user | grep -q "login"; then
-            echo "GitHub authentication successful."
-            # Create marker file to indicate git is configured
-            touch "$PERSIST_DIR/.git-configured"
-        else
-            echo "GitHub authentication failed. Please check your token and try again."
-            rm "$PERSIST_DIR/.gitconfig" "$PERSIST_DIR/.git-credentials"
-            exit 1
-        fi
-    else
-        echo "Git is already configured."
     fi
 
-    # Always run these commands when setting up a new instance
+    # Always test GitHub authentication
+    if curl -s -H "Authorization: token $(grep -o 'oauth2:.*@' "$PERSIST_DIR/.git-credentials" | cut -d':' -f2 | cut -d'@' -f1)" https://api.github.com/user | grep -q "login"; then
+        echo "GitHub authentication successful."
+    else
+        echo "GitHub authentication failed. Please check your token and try again."
+        rm "$PERSIST_DIR/.gitconfig" "$PERSIST_DIR/.git-credentials"
+        exit 1
+    fi
+
+    # Always configure git to use the persistent config and credentials
     git config --global include.path "$PERSIST_DIR/.gitconfig"
     git config --global credential.helper "store --file=$PERSIST_DIR/.git-credentials"
 }
