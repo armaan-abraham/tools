@@ -8,6 +8,9 @@ setup_rye() {
     RYE_HOME="$PERSIST_DIR/.local/rye"
 
     if [ ! -f "$PERSIST_DIR/.rye-source-added" ]; then
+        export RYE_HOME="$PERSIST_DIR/.local/rye"
+        curl -sSf https://rye.astral.sh/get | bash
+
         # Update shell configuration files to use custom Rye path
         if ! echo "source \"$RYE_HOME/env\"" >> ~/.profile 2>/dev/null; then
             echo "Failed to update ~/.profile."
