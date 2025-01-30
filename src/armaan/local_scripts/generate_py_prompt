@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# Check if directory argument is provided
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 <directory>"
+    exit 1
+fi
+
+directory="$1"
+
+# Check if directory exists
+if [ ! -d "$directory" ]; then
+    echo "Error: Directory '$directory' does not exist"
+    exit 1
+fi
+
+# Create temporary file
+temp_file=$(mktemp)
+
+# Function to process each Python file
+process_file() {
+    local file="$1"
+    local relative_path="${file#$directory/}"
+    
+    # Add file header
+    echo -e "\n### $relative_path\n" >> "$temp_file"
+    
+    # Add code block markers and file content
+    echo '```' >> "$temp_file"
+    cat "$file" >> "$temp_file"
+    echo '```' >> "$temp_file"
+}
+
+# Export function so it's available to find command
+export -f process_file
+export temp_file
+
+# Find all Python files and process them
+find "$directory" -type f -name "*.py" -exec bash -c 'process_file "$0"' {} \;
+
+# Output the result
+cat "$temp_file"
+
+# Clean up
+rm "$temp_file"
