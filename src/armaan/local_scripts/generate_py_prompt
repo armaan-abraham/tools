@@ -1,18 +1,27 @@
 #!/bin/bash
 
-# Check if directory argument is provided
-if [ $# -ne 1 ]; then
-    echo "Usage: $0 <directory>"
+# Update argument check
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 <directory1> [directory2 ...] [skip_tests=true/false]"
     exit 1
 fi
 
-directory="$1"
+skip_tests="true"  # Default value
+directories=()
 
-# Check if directory exists
-if [ ! -d "$directory" ]; then
-    echo "Error: Directory '$directory' does not exist"
-    exit 1
-fi
+# Parse arguments: collect directories and check for skip_tests option
+for arg in "$@"; do
+    if [[ "$arg" == "skip_tests=true" || "$arg" == "skip_tests=false" ]]; then
+        skip_tests="${arg#skip_tests=}"
+    else
+        directories+=("$arg")
+        # Check if directory exists
+        if [ ! -d "$arg" ]; then
+            echo "Error: Directory '$arg' does not exist"
+            exit 1
+        fi
+    fi
+done
 
 # Create temporary file
 temp_file=$(mktemp)
@@ -20,7 +29,8 @@ temp_file=$(mktemp)
 # Function to process each Python file
 process_file() {
     local file="$1"
-    local relative_path="${file#$directory/}"
+    local base_dir="$2"
+    local relative_path="${file#$base_dir/}"
     
     # Add file header
     echo -e "\n### $relative_path\n" >> "$temp_file"
@@ -35,8 +45,15 @@ process_file() {
 export -f process_file
 export temp_file
 
-# Find all Python files and process them
-find "$directory" -type f -name "*.py" -exec bash -c 'process_file "$0"' {} \;
+# Process each directory
+for directory in "${directories[@]}"; do
+    # Modify find command to conditionally exclude test files
+    if [ "$skip_tests" = "true" ]; then
+        find "$directory" -type f -name "*.py" -not -name "*test*.py" -exec bash -c 'process_file "$0" "'"$directory"'"' {} \;
+    else
+        find "$directory" -type f -name "*.py" -exec bash -c 'process_file "$0" "'"$directory"'"' {} \;
+    fi
+done
 
 # Output the result
 cat "$temp_file"
